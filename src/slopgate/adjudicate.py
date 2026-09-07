@@ -46,6 +46,13 @@ def adjudicate(claims, grounding, injection_signals):
                    "status": "IN_RANGE" if line["in_range"] else "OUT_OF_RANGE",
                    "checked_by": "line count of claimed file",
                    "evidence": "file has %d lines" % line["file_lines"]})
+    loc = grounding.get("symbol_location")
+    if loc:
+        ev.append({"type": "location", "value": "%s in %s"
+                                                % (loc["symbol"], loc["claimed"]),
+                   "status": loc["status"],
+                   "checked_by": "definition site vs claimed file",
+                   "evidence": "defined in %s" % ", ".join(loc["homes"])})
     for r in grounding.get("reachability", []):
         ev.append({"type": "reachability", "value": r["symbol"],
                    "status": {True: "REACHABLE", False: "UNREACHABLE",
@@ -80,6 +87,13 @@ def adjudicate(claims, grounding, injection_signals):
         verdict, conf = "HALLUCINATED", 0.85
         reasons.append("claimed file '%s' does not exist at this ref"
                        % claims.get("primary_path"))
+    elif loc and loc["status"] == "MISLOCATED":
+        verdict, conf = "HALLUCINATED", 0.90
+        reasons.append("'%s' is defined in %s, not in the claimed file '%s', "
+                       "which does not contain the symbol at all; the symbol, "
+                       "the path and the line all check out individually and "
+                       "only their association is false"
+                       % (pname, ", ".join(loc["homes"]), loc["claimed"]))
     elif preach.get("reachable") is False:
         verdict, conf = "UNVERIFIED", 0.60
         reasons.append("'%s' is defined but no call path reaches it from a "

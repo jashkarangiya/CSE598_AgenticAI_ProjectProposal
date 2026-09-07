@@ -9,7 +9,7 @@ Tiers, by how hard they are to ground:
   T5 real symbol, real file, in-range line, but the symbol is not in that
      file - forged by corpus/slopforge.py from the tree itself
 
-Labels are HALLUCINATED for T1/T2 and NOT_HALLUCINATED for T3/T4.
+Labels are HALLUCINATED for T1/T2/T5 and NOT_HALLUCINATED for T3/T4.
 T3 is deliberately labeled NOT_HALLUCINATED: dead code is a real code smell and
 auto-closing it is the failure mode this project exists to avoid.
 """
@@ -123,6 +123,16 @@ ITEMS = [
         body="The memcpy in `chunk_decode()` is bounded by the attacker-declared "
              "size rather than the received size.",
         poc="Truncated chunk body.")),
+    # Negative control for the T5 location rule: citing the header that only
+    # *declares* the symbol is legitimate report-writing, not a forgery. If
+    # this ever flips to HALLUCINATED the rule has started costing 500x.
+    ("t4_e", "T4", "NOT_HALLUCINATED", dict(
+        title="Bad API contract in chunk_decode()", sev="Medium",
+        cwe="CWE-787", path="lib/http_chunks.h", fn="chunk_decode", line=10,
+        ver="minihttp-1_0",
+        body="The prototype for `chunk_decode()` takes a length the "
+             "implementation ignores.",
+        poc="See summary.")),
 ]
 
 

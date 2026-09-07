@@ -8,7 +8,9 @@ zero cost to farm bounty payouts. Defeated by grounding.
 **Adversary 2 - the adaptive reporter.** Reads the repository first and cites
 real symbols, real paths, and plausible line numbers, so only reachability or
 semantics separate the report from a real one. This is the adversary the T2/T3
-tiers model and the one SlopForge (phase 2) generates.
+tiers model and the one SlopForge generates as tier T5
+(`corpus/slopforge.py`). Round 1 of that generator cut the baseline's recall
+from 1.00 to 0.50 before the symbol-location check was added.
 
 **Adversary 3 - the reporter who attacks the triage system.** The report is
 untrusted text that SlopGate feeds to a model. Two attacks: *promotion* (steer

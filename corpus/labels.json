@@ -87,6 +87,13 @@
       "synthetic": true
     },
     {
+      "file": "t4_e.md",
+      "tier": "T4",
+      "label": "NOT_HALLUCINATED",
+      "primary_symbol": "chunk_decode",
+      "synthetic": true
+    },
+    {
       "file": "t5_a.md",
       "tier": "T5",
       "label": "HALLUCINATED",

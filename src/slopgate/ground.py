@@ -162,3 +162,32 @@ def check_version(repo, ref):
         return {"ref": ref, "exists": ref in tags, "known_tags": tags[:10]}
     except Exception:  # noqa: BLE001
         return {"ref": ref, "exists": None, "note": "git unavailable"}
+
+
+def check_symbol_location(repo, sym, record, claimed_path):
+    """Is the declared function actually defined in the declared file?
+
+    Closes the T5 attack: a forged report can cite a real symbol, a real file
+    and an in-range line while lying about which file holds the definition.
+    Every check above passes; only the association is false.
+
+    Cost-asymmetric on purpose. A header that merely *declares* the symbol, or
+    a comment that names it, is a legitimate thing for a report to cite, so
+    anything short of total absence from the claimed file abstains rather than
+    convicting. Only "defined here, claimed there, not present there at all"
+    is treated as load-bearing.
+    """
+    if not claimed_path or record["status"] != "DEFINED":
+        return None
+    homes = sorted({d["file"] for d in record["definitions"]})
+    if claimed_path in homes:
+        return {"symbol": sym, "claimed": claimed_path, "homes": homes,
+                "status": "LOCATED"}
+    p = os.path.join(repo, claimed_path)
+    if not os.path.isfile(p):
+        return None                       # check_path already reports this
+    if sym in open(p, encoding="utf-8", errors="replace").read():
+        return {"symbol": sym, "claimed": claimed_path, "homes": homes,
+                "status": "DECLARED_ONLY"}
+    return {"symbol": sym, "claimed": claimed_path, "homes": homes,
+            "status": "MISLOCATED"}

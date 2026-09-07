@@ -38,8 +38,17 @@ def analyze(report_path, repo):
         g["paths"].append(ground.check_path(repo, p))
     g["version"] = ground.check_version(repo, claims.get("version"))
 
+    primary = claims.get("primary_symbol")
+    prec = next((r for r in g["symbols"] if r["symbol"] == primary), None)
+    if prec:
+        g["symbol_location"] = ground.check_symbol_location(
+            repo, primary, prec, claims.get("primary_path"))
+
     if claims.get("line") and g["paths"]:
-        pc = g["paths"][0]
+        # the line claim is about the report's *declared* file, not whichever
+        # path sorted first
+        pc = next((x for x in g["paths"] if x["path"] == claims.get("primary_path")),
+                  g["paths"][0])
         g["line_check"] = {"claimed": claims["line"], "file_lines": pc["line_count"],
                            "in_range": bool(pc["exists"]
                                             and claims["line"] <= pc["line_count"])}
