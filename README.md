@@ -164,10 +164,10 @@ docs/                  threat model, labeling protocol
 The `minihttp-1_0` tag lives on this repo, not on a nested one, so the
 version-ref check works straight from a clone.
 
-The two screenshots above are generated, not pasted: `python3
+The two screenshots above are generated, not pasted. `python3
 docs/render_svg.py` reruns both commands and redraws `docs/*.svg` from their
-real stdout, so an image that disagrees with the code is a failing diff rather
-than a thing nobody notices.
+real stdout, so refreshing them is one command rather than a manual retake.
+Expect the timing lines to differ on every regeneration.
 
 ## Limitations
 
