@@ -1,0 +1,78 @@
+{
+  "target_repo": "examples/target_repo",
+  "labeling_protocol": "docs/labeling_protocol.md",
+  "items": [
+    {
+      "file": "t1_a.md",
+      "tier": "T1",
+      "label": "HALLUCINATED",
+      "primary_symbol": "curl_easy_parse_header"
+    },
+    {
+      "file": "t1_b.md",
+      "tier": "T1",
+      "label": "HALLUCINATED",
+      "primary_symbol": "http_state_release"
+    },
+    {
+      "file": "t1_c.md",
+      "tier": "T1",
+      "label": "HALLUCINATED",
+      "primary_symbol": "url_normalize_percent"
+    },
+    {
+      "file": "t1_d.md",
+      "tier": "T1",
+      "label": "HALLUCINATED",
+      "primary_symbol": "chunk_log_error"
+    },
+    {
+      "file": "t2_a.md",
+      "tier": "T2",
+      "label": "HALLUCINATED",
+      "primary_symbol": "curl_easy_parse_header"
+    },
+    {
+      "file": "t2_b.md",
+      "tier": "T2",
+      "label": "HALLUCINATED",
+      "primary_symbol": "curl_easy_parse_header"
+    },
+    {
+      "file": "t3_a.md",
+      "tier": "T3",
+      "label": "NOT_HALLUCINATED",
+      "primary_symbol": "url_legacy_unescape"
+    },
+    {
+      "file": "t3_b.md",
+      "tier": "T3",
+      "label": "NOT_HALLUCINATED",
+      "primary_symbol": "url_legacy_unescape"
+    },
+    {
+      "file": "t4_a.md",
+      "tier": "T4",
+      "label": "NOT_HALLUCINATED",
+      "primary_symbol": "chunk_decode"
+    },
+    {
+      "file": "t4_b.md",
+      "tier": "T4",
+      "label": "NOT_HALLUCINATED",
+      "primary_symbol": "chunk_read_size"
+    },
+    {
+      "file": "t4_c.md",
+      "tier": "T4",
+      "label": "NOT_HALLUCINATED",
+      "primary_symbol": "url_parse_host"
+    },
+    {
+      "file": "t4_d.md",
+      "tier": "T4",
+      "label": "NOT_HALLUCINATED",
+      "primary_symbol": "chunk_decode"
+    }
+  ]
+}
