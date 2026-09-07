@@ -26,18 +26,13 @@ python3 demo.py
 ```
 
 `demo.py` takes no arguments, prints a fixed evidence bundle, and exits
-non-zero if any verdict moves. Expect this:
+non-zero if any verdict moves:
 
-```
-REPORT                       TIER  VERDICT        CONF   WHY IT IS HARD
-report_hallucinated.md       T2    HALLUCINATED   0.93  symbol exists only inside a comment
-t5_a.md                      T5    HALLUCINATED   0.90  real symbol, wrong real file (SlopForge)
-report_deadcode.md           T3    UNVERIFIED     0.60  real but unreachable - a finding, not slop
-report_real.md               T4    UNVERIFIED     0.50  genuine defect - the negative control
-report_injection.md          --    UNVERIFIED     0.50  attacks the triage system - forced to a human
+![python3 demo.py: the full evidence bundle for the flagship T2 report - verdict HALLUCINATED at 0.93 confidence, an evidence table showing curl_easy_parse_header as MENTIONED rather than DEFINED and the claimed line 214 OUT_OF_RANGE against a 53-line file - followed by a five-row summary of one report per tier and PASS 5/5](docs/demo.svg)
 
-PASS  5/5 verdicts as expected.
-```
+The evidence table is the product. `MENTIONED` rather than `DEFINED` is the
+whole T2 result: the symbol is in the tree, but only inside a comment saying it
+was removed.
 
 Then the full evaluation:
 
@@ -61,11 +56,10 @@ python3 run_baseline.py --report examples/report_real.md \
 19 items: 13 hand-authored, 6 forged by SlopForge. Measured against the honest
 null hypothesis — *does grep find the claimed symbol?*
 
-```
-OVERALL  (positive class = HALLUCINATED)
-  SlopGate      TP=12  FP=0   FN=0   TN=7    P=1.00 R=1.00 F1=1.00  cost=0.0
-  grep baseline TP=3   FP=0   FN=9   TN=7    P=1.00 R=0.25 F1=0.40  cost=9.0
-```
+![python3 eval/run_eval.py: per-item verdicts for all 19 corpus reports next to gold labels and the grep incumbent, then the confusion matrix - SlopGate P=1.00 R=1.00 F1=1.00 with zero false positives against grep P=1.00 R=0.25 F1=0.40 - a per-tier accuracy table, and 7/19 abstentions at 0.008 s per report](docs/eval.svg)
+
+SlopGate F1 **1.00** (P 1.00 / R 1.00, zero false positives) against grep's
+**0.40** (P 1.00 / R 0.25). 7/19 verdicts abstain. 0.008 s/report, $0.00.
 
 | Tier | n | SlopGate | grep |
 |---|---|---|---|
@@ -74,8 +68,6 @@ OVERALL  (positive class = HALLUCINATED)
 | T3 | 2 | 1.00 | 1.00 |
 | T4 | 5 | 1.00 | 1.00 |
 | T5 | 6 | 1.00 | 0.00 |
-
-7/19 verdicts abstain. 0.011 s/report, $0.00.
 
 T2 and T5 are the rows that justify the project. In the bundled target,
 `curl_easy_parse_header` appears exactly once, inside a comment recording that
@@ -164,12 +156,18 @@ corpus/
   slopforge.py         adversarial generator, forges T5 from the tree
   labels.json          manifest: file, tier, gold label
 eval/run_eval.py       confusion matrix, per-tier, grep comparison
+docs/render_svg.py     regenerates the README screenshots from live output
 examples/target_repo/  bundled 6-file C project, tagged minihttp-1_0
 docs/                  threat model, labeling protocol
 ```
 
 The `minihttp-1_0` tag lives on this repo, not on a nested one, so the
 version-ref check works straight from a clone.
+
+The two screenshots above are generated, not pasted: `python3
+docs/render_svg.py` reruns both commands and redraws `docs/*.svg` from their
+real stdout, so an image that disagrees with the code is a failing diff rather
+than a thing nobody notices.
 
 ## Limitations
 

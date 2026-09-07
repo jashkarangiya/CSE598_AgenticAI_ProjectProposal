@@ -104,7 +104,7 @@ def main():
                        "eval_%s.json" % time.strftime("%Y%m%d"))
     json.dump({"method": "rule-based", "rows": rows, "slopgate": sg, "grep": gp},
               open(out, "w"), indent=2)
-    print("wrote %s" % out)
+    print("wrote %s" % os.path.relpath(out, ROOT))
 
     bad = [r["file"] for r in rows if r["slopgate"] != r["gold"]]
     if bad:

@@ -153,7 +153,8 @@ def main():
         json.dump({"target_repo": "examples/target_repo",
                    "labeling_protocol": "docs/labeling_protocol.md",
                    "items": labels}, f, indent=2)
-    print("wrote %d reports to %s" % (len(labels), OUT))
+    print("wrote %d reports to %s"
+          % (len(labels), os.path.relpath(OUT, os.path.dirname(HERE))))
 
 
 if __name__ == "__main__":
