@@ -14,6 +14,15 @@ outside the standard library.
 CSE 598 capstone. The proposal covers the problem and the headline result;
 this repo is the artifact.
 
+**Contents**
+
+| | |
+|---|---|
+| **Use it** | [Quickstart](#quickstart) · [Triage a queue](#triage-a-queue) · [Run the evaluation](#run-the-evaluation) |
+| **Evidence** | [Results](#results) · [Co-evolution](#co-evolution) · [Difficulty tiers](#difficulty-tiers) |
+| **Internals** | [How it works](#how-it-works) · [Verdicts and cost](#verdicts-and-cost) · [Layout](#layout) |
+| **Caveats** | [Limitations](#limitations) · [Roadmap](#roadmap) · [Ethics](#ethics) |
+
 ## Quickstart
 
 Requires Python 3.8+ and `git`. There is no install step and no build step —
@@ -31,8 +40,8 @@ non-zero if any verdict moves:
 ![python3 demo.py: the full evidence bundle for the flagship T2 report - verdict HALLUCINATED at 0.93 confidence, an evidence table showing curl_easy_parse_header as MENTIONED rather than DEFINED and the claimed line 214 OUT_OF_RANGE against a 53-line file - followed by a five-row summary of one report per tier and PASS 5/5](docs/demo.svg)
 
 The evidence table is the product. `MENTIONED` rather than `DEFINED` is the
-whole T2 result: the symbol is in the tree, but only inside a comment saying it
-was removed.
+whole [T2](#difficulty-tiers) result: the symbol is in the tree, but only
+inside a comment saying it was removed.
 
 ## Triage a queue
 
@@ -48,7 +57,8 @@ The ordering is the product. Reports that ground to real reachable code sort
 above dead code, which sorts above anything that contradicts the tree, and
 within the contradictions the least confident ones come first — those are the
 ones worth a second look. A maintainer reads top-down and stops when they run
-out of time.
+out of time. What each verdict means is in
+[Verdicts and cost](#verdicts-and-cost).
 
 The argument is a file, a directory, or a glob. `--repo` defaults to the
 current directory:
@@ -79,7 +89,7 @@ That run is real: no `--repo`, no target repo, no corpus. It walked this
 checkout, found `strip_comments` defined in `src/slopgate/ground.py` and
 reachable, and found that `normalize_report_encoding` does not exist.
 
-## Evaluation
+## Run the evaluation
 
 ```bash
 python3 corpus/build_corpus.py   # 13 authored + 6 forged reports
@@ -107,18 +117,20 @@ SlopGate F1 **1.00** (P 1.00 / R 1.00, zero false positives) against grep's
 | T4 | 5 | 1.00 | 1.00 |
 | T5 | 6 | 1.00 | 0.00 |
 
-T2 and T5 are the rows that justify the project. In the bundled target,
+[T2 and T5](#difficulty-tiers) are the rows that justify the project. In the
+bundled target,
 `curl_easy_parse_header` appears exactly once, inside a comment recording that
 it was removed before release. grep reports it as present.
 
 **Perfect scores on 19 synthetic items against one small repo mean the tiers
-are well separated, not that the system generalizes.** Corpus growth is on the
-roadmap.
+are well separated, not that the system generalizes.** Corpus growth is
+[roadmap item 7](#roadmap); the rest of the caveats are in
+[Limitations](#limitations).
 
 ### Co-evolution
 
-SlopForge generates the T5 tier by reading the target tree. Round 1 is the
-useful half:
+[SlopForge](corpus/slopforge.py) generates the [T5](#difficulty-tiers) tier by
+reading the target tree. Round 1 is the useful half:
 
 | | F1 | recall | T5 |
 |---|---|---|---|
@@ -145,7 +157,9 @@ from precision on easy ones.
 | T5 | symbol real, file real, line in range, but the symbol is not in that file | every check passes individually; only the association is false | `HALLUCINATED` |
 
 T3 is `NOT_HALLUCINATED` on purpose. Dead code is a real finding, and
-auto-closing it is the failure this project exists to prevent.
+auto-closing it is the failure this project exists to prevent — see the cost
+matrix in [Verdicts and cost](#verdicts-and-cost). Tier definitions and the
+labeling rules live in [docs/labeling_protocol.md](docs/labeling_protocol.md).
 
 ## How it works
 
@@ -166,7 +180,7 @@ losing real call sites.
 Nothing is probabilistic: the same report against the same ref always produces
 the same record.
 
-### Verdicts
+### Verdicts and cost
 
 | Verdict | Meaning | Action |
 |---|---|---|
@@ -182,31 +196,30 @@ no PoC sandbox, so every grounded report collapses to `UNVERIFIED`.
 
 ## Layout
 
-```
-slopgate.py            the tool: one report or a ranked queue
-demo.py                fixed-output entry point, self-checking
-src/slopgate/
-  cli.py               analyze, evidence bundle, queue ranking
-  extract.py           injection sanitizer + claim extraction
-  ground.py            tokenizer, symbol grounding, reachability, location
-  adjudicate.py        cost-asymmetric decision rules
-corpus/
-  build_corpus.py      13 hand-authored reports
-  slopforge.py         adversarial generator, forges T5 from the tree
-  labels.json          manifest: file, tier, gold label
-eval/run_eval.py       confusion matrix, per-tier, grep comparison
-docs/render_svg.py     regenerates the README screenshots from live output
-examples/target_repo/  bundled 6-file C project, tagged minihttp-1_0
-docs/                  threat model, labeling protocol
-```
+| Path | What it is |
+|---|---|
+| [`slopgate.py`](slopgate.py) | the tool: one report, or a ranked queue |
+| [`demo.py`](demo.py) | fixed-output entry point, self-checking |
+| [`src/slopgate/cli.py`](src/slopgate/cli.py) | analyze, evidence bundle, queue ranking |
+| [`src/slopgate/extract.py`](src/slopgate/extract.py) | injection sanitizer + claim extraction |
+| [`src/slopgate/ground.py`](src/slopgate/ground.py) | tokenizer, symbol grounding, reachability, location |
+| [`src/slopgate/adjudicate.py`](src/slopgate/adjudicate.py) | cost-asymmetric decision rules |
+| [`corpus/build_corpus.py`](corpus/build_corpus.py) | 13 hand-authored reports |
+| [`corpus/slopforge.py`](corpus/slopforge.py) | adversarial generator, forges T5 from the tree |
+| [`corpus/labels.json`](corpus/labels.json) | manifest: file, tier, gold label |
+| [`eval/run_eval.py`](eval/run_eval.py) | confusion matrix, per-tier, grep comparison |
+| [`docs/render_svg.py`](docs/render_svg.py) | regenerates the README screenshots from live output |
+| [`examples/target_repo/`](examples/target_repo) | bundled 6-file C project, tagged `minihttp-1_0` |
+| [`examples/self/`](examples/self) | reports about this repo's own Python source |
+| [`docs/threat_model.md`](docs/threat_model.md) | adversaries, injection, the suppression attack |
+| [`docs/labeling_protocol.md`](docs/labeling_protocol.md) | label space, tiers, disagreement procedure |
 
-The `minihttp-1_0` tag lives on this repo, not on a nested one, so the
-version-ref check works straight from a clone.
-
-The two screenshots above are generated, not pasted. `python3
-docs/render_svg.py` reruns both commands and redraws `docs/*.svg` from their
-real stdout, so refreshing them is one command rather than a manual retake.
-Expect the timing lines to differ on every regeneration.
+Two things that are easy to trip over. The `minihttp-1_0` tag lives on this
+repo rather than on a nested one, so the version-ref check works straight from
+a clone. And the three screenshots above are generated, not pasted: `python3
+docs/render_svg.py` reruns each command and redraws `docs/*.svg` from its real
+stdout, so refreshing them is one command rather than a manual retake. Expect
+the timing lines to differ on every regeneration.
 
 ## Limitations
 
