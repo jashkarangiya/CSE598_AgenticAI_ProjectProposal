@@ -13,7 +13,8 @@ claims to describe, and emits an evidence bundle for every verdict.
 ## Quick start
 
 ```bash
-git clone <REPO_URL> && cd slopgate
+git clone https://github.com/jashkarangiya/CSE598_AgenticAI_ProjectProposal.git
+cd CSE598_AgenticAI_ProjectProposal
 python3 run_baseline.py --report examples/report_hallucinated.md \
                         --repo   examples/target_repo
 ```
