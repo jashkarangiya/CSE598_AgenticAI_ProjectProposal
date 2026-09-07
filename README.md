@@ -73,8 +73,6 @@ $ python3 slopgate.py examples/self/
 ------------------------------------------------------------------------
 READ FIRST   1 report(s) need a human
 DEPRIORITIZE 1 report(s) contradict the tree, evidence attached
-COST         $0.00 in 0.03s. Nothing was closed automatically.
-------------------------------------------------------------------------
 ```
 
 That run is real: no `--repo`, no target repo, no corpus. It walked this
