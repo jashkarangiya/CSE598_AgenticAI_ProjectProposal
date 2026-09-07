@@ -64,6 +64,8 @@ evaluated as a delta against these numbers, not as a replacement for them.
 | `--labels PATH` | `corpus/labels.json` | Labeled corpus manifest |
 
 Results are written dated to `eval/results/eval_YYYYMMDD.json` and committed.
+Exits non-zero if any item's verdict disagrees with its gold label, so it works
+as the regression gate for phase-2 changes.
 
 ---
 
@@ -202,7 +204,9 @@ examples/
   report_real.md             T4 - real reachable defect
   report_deadcode.md         T3 - real but unreachable
   report_injection.md        report that attacks the triage system
-  target_repo/               bundled 6-file C project, git-tagged minihttp-1_0
+  target_repo/               bundled 6-file C project (no nested .git; the
+                             minihttp-1_0 tag lives on this repo so the
+                             version-ref check works straight from a clone)
 corpus/
   build_corpus.py            generates the 12 labeled reports
   labels.json                manifest: file, tier, gold label

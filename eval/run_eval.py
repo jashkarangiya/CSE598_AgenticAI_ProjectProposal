@@ -106,6 +106,11 @@ def main():
               open(out, "w"), indent=2)
     print("wrote %s" % out)
 
+    bad = [r["file"] for r in rows if r["slopgate"] != r["gold"]]
+    if bad:
+        print("REGRESSION  %d item(s) disagree with gold: %s" % (len(bad), ", ".join(bad)))
+    return 1 if bad else 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
