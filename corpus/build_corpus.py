@@ -6,6 +6,8 @@ Tiers, by how hard they are to ground:
   T2 symbol appears only in a comment  (grep says "found it" - grep fails here)
   T3 symbol real but unreachable       (needs a call graph)
   T4 symbol real, reachable, real bug  (must NOT be called slop)
+  T5 real symbol, real file, in-range line, but the symbol is not in that
+     file - forged by corpus/slopforge.py from the tree itself
 
 Labels are HALLUCINATED for T1/T2 and NOT_HALLUCINATED for T3/T4.
 T3 is deliberately labeled NOT_HALLUCINATED: dead code is a real code smell and
@@ -132,7 +134,11 @@ def main():
         with open(os.path.join(OUT, fn), "w", encoding="utf-8") as f:
             f.write(TMPL.format(**kw))
         labels.append({"file": fn, "tier": tier, "label": label,
-                       "primary_symbol": kw["fn"]})
+                       "primary_symbol": kw["fn"], "synthetic": True})
+
+    import slopforge  # imported here so slopforge can reuse TMPL above
+    labels += slopforge.forge(os.path.join(HERE, os.pardir,
+                                           "examples", "target_repo"), OUT)
     with open(os.path.join(HERE, "labels.json"), "w") as f:
         json.dump({"target_repo": "examples/target_repo",
                    "labeling_protocol": "docs/labeling_protocol.md",
