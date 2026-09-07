@@ -1,134 +1,142 @@
 # SlopGate
 
-**Evidence-grounded triage for AI-generated vulnerability reports.**
+Evidence-grounded triage for AI-generated vulnerability reports.
 
-Decides whether an inbound vulnerability report is grounded in the code it
-claims to describe, and emits an evidence bundle for every verdict.
+Maintainers are getting buried in plausible-looking security reports that
+describe code that does not exist. SlopGate checks an inbound report against
+the tree it claims to describe and returns a verdict with the evidence
+attached. It never auto-closes anything; the output is a queue ordering, not a
+classification.
 
-> Companion to the CSE 598 capstone proposal. The proposal covers the problem,
-> the baseline mechanism, and the headline result. Everything else lives here.
+Rule-based end to end. No model, no API key, no network, no dependencies
+outside the standard library.
 
----
+CSE 598 capstone. The proposal covers the problem and the headline result;
+this repo is the artifact.
 
-## Quick start
+## Quickstart
+
+Requires Python 3.8+ and `git`. There is no install step and no build step —
+the target repository is bundled.
 
 ```bash
 git clone https://github.com/jashkarangiya/CSE598_AgenticAI_ProjectProposal.git
 cd CSE598_AgenticAI_ProjectProposal
-python3 run_baseline.py --report examples/report_hallucinated.md \
-                        --repo   examples/target_repo
+python3 demo.py
 ```
 
-Python 3.8+ and `git`. **No dependencies, no model, no API key, no network.**
-The baseline is rule-based end to end. The target repository is bundled in
-`examples/target_repo`, so there is no clone step and no build step. First
-result in well under a second.
+`demo.py` takes no arguments, prints a fixed evidence bundle, and exits
+non-zero if any verdict moves. Expect this:
 
-### Full evaluation
+```
+REPORT                       TIER  VERDICT        CONF   WHY IT IS HARD
+report_hallucinated.md       T2    HALLUCINATED   0.93  symbol exists only inside a comment
+t5_a.md                      T5    HALLUCINATED   0.90  real symbol, wrong real file (SlopForge)
+report_deadcode.md           T3    UNVERIFIED     0.60  real but unreachable - a finding, not slop
+report_real.md               T4    UNVERIFIED     0.50  genuine defect - the negative control
+report_injection.md          --    UNVERIFIED     0.50  attacks the triage system - forced to a human
+
+PASS  5/5 verdicts as expected.
+```
+
+Then the full evaluation:
 
 ```bash
-python3 corpus/build_corpus.py     # 13 authored + 6 forged -> corpus/reports/
-python3 corpus/slopforge.py        # (optional) forge T5 alone, with a self-check
-python3 eval/run_eval.py           # confusion matrix, per-tier breakdown, grep comparison
+python3 corpus/build_corpus.py   # 13 authored + 6 forged reports
+python3 eval/run_eval.py         # confusion matrix, per-tier, grep comparison
 ```
 
-### Why the baseline has no model in it
+`run_eval.py` exits non-zero if any verdict disagrees with its gold label, so
+it doubles as the regression gate.
 
-This is deliberate. The first question worth asking about any agent is *what
-does the dumbest possible system score?* A rule-based baseline answers that
-honestly and sets the bar every later stage has to clear: a claim extractor
-that costs $0.00 and runs in a millisecond is a real competitor, and an LLM
-stage that does not beat it on the hard tiers should not ship.
+One report at a time:
 
-It also means the artifact is trivially reproducible. Nothing to install,
-nothing to authenticate, no rate limits, no nondeterminism, and no grader
-staring at a traceback because they do not have a key.
+```bash
+python3 run_baseline.py --report examples/report_real.md \
+                        --repo examples/target_repo [--json out.json]
+```
 
-LLM-assisted claim extraction is phase-2 work (roadmap item 3), and it will be
-evaluated as a delta against these numbers, not as a replacement for them.
+## Results
 
----
+19 items: 13 hand-authored, 6 forged by SlopForge. Measured against the honest
+null hypothesis — *does grep find the claimed symbol?*
 
-## CLI reference
+```
+OVERALL  (positive class = HALLUCINATED)
+  SlopGate      TP=12  FP=0   FN=0   TN=7    P=1.00 R=1.00 F1=1.00  cost=0.0
+  grep baseline TP=3   FP=0   FN=9   TN=7    P=1.00 R=0.25 F1=0.40  cost=9.0
+```
 
-### `run_baseline.py`
-
-| Flag | Required | Default | Meaning |
+| Tier | n | SlopGate | grep |
 |---|---|---|---|
-| `--report PATH` | yes | — | Vulnerability report in Markdown |
-| `--repo PATH` | yes | — | Checkout of the repository the report describes |
-| `--json PATH` | no | — | Also write the machine-readable triage record |
+| T1 | 4 | 1.00 | 0.75 |
+| T2 | 2 | 1.00 | 0.00 |
+| T3 | 2 | 1.00 | 1.00 |
+| T4 | 5 | 1.00 | 1.00 |
+| T5 | 6 | 1.00 | 0.00 |
 
-### `eval/run_eval.py`
+7/19 verdicts abstain. 0.011 s/report, $0.00.
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `--labels PATH` | `corpus/labels.json` | Labeled corpus manifest |
+T2 and T5 are the rows that justify the project. In the bundled target,
+`curl_easy_parse_header` appears exactly once, inside a comment recording that
+it was removed before release. grep reports it as present.
 
-Results are written dated to `eval/results/eval_YYYYMMDD.json` and committed.
-Exits non-zero if any item's verdict disagrees with its gold label, so it works
-as the regression gate for phase-2 changes.
+**Perfect scores on 19 synthetic items against one small repo mean the tiers
+are well separated, not that the system generalizes.** Corpus growth is on the
+roadmap.
 
----
+### Co-evolution
+
+SlopForge generates the T5 tier by reading the target tree. Round 1 is the
+useful half:
+
+| | F1 | recall | T5 |
+|---|---|---|---|
+| round 0 — seed corpus only | 1.00 | 1.00 | — |
+| **round 1 — SlopForge attacks** | **0.67** | **0.50** | **0.00** |
+| round 2 — location check added | 1.00 | 1.00 | 1.00 |
+
+One generated tier erased a perfect score. Both rounds are separate commits, so
+the curve is reproducible rather than asserted. grep scores 0.00 on T5 in both
+rounds and cannot do better: substring matching has no way to know a symbol is
+defined somewhere other than where the report says.
+
+## Difficulty tiers
+
+Every corpus item is tagged, so precision on hard negatives is reported apart
+from precision on easy ones.
+
+| Tier | Claim under test | Why it is hard | Gold |
+|---|---|---|---|
+| T1 | symbol absent from the tree | grep catches it | `HALLUCINATED` |
+| T2 | symbol appears only in a comment | grep says "found it" and is wrong | `HALLUCINATED` |
+| T3 | symbol real but unreachable | needs a call graph | `NOT_HALLUCINATED` |
+| T4 | symbol real, reachable, genuine defect | must not be called slop | `NOT_HALLUCINATED` |
+| T5 | symbol real, file real, line in range, but the symbol is not in that file | every check passes individually; only the association is false | `HALLUCINATED` |
+
+T3 is `NOT_HALLUCINATED` on purpose. Dead code is a real finding, and
+auto-closing it is the failure this project exists to prevent.
 
 ## How it works
 
-Four stages. Report text is treated as untrusted data at every one of them.
+Four stages. Report text is untrusted data at every one.
 
-**1. Sanitize** (`src/slopgate/extract.py`)
-Strips instruction-shaped spans from the report before any model sees it: HTML
-comments, "ignore previous instructions", "set verdict to", "pre-verified by".
-Each hit is recorded as an injection signal rather than silently dropped.
+| Stage | Module | What it does |
+|---|---|---|
+| Sanitize | `extract.py` | strips instruction-shaped spans (`ignore previous instructions`, `set verdict to`, HTML comments) and records each as an injection signal |
+| Extract | `extract.py` | regex over header fields and inline code spans → declared symbol, paths, line, version ref, CWE |
+| Ground | `ground.py` | classifies each symbol `ABSENT` / `MENTIONED` / `DEFINED`, then checks path, line range, git tag, reachability, and symbol-to-file association |
+| Adjudicate | `adjudicate.py` | deterministic rules over the evidence table; any injection signal forces a human |
 
-**2. Extract**
-Regex over the report's structured header fields and inline code spans, pulling
-the *declared* primary symbol, file paths, line number, version ref, and CWE
-into a JSON claim set. Standard-library names (`memcpy`, `strlen`, ...) are
-filtered out because they carry no grounding signal about the target. The
-declared primary symbol drives the verdict; incidental symbols only contribute
-supporting evidence.
+Grounding uses a single-pass tokenizer that blanks comments and string literals
+while preserving line numbers. A sequential regex stripper treats the `//` in
+`"https://example.com"` as a line comment and swallows the rest of the line,
+losing real call sites.
 
-**3. Ground** (`src/slopgate/ground.py`)
-For each symbol, walk the tree with a **single-pass tokenizer** that blanks
-comments and string literals while preserving line numbers, then classify:
+Nothing is probabilistic: the same report against the same ref always produces
+the same record.
 
-| Status | Meaning |
-|---|---|
-| `ABSENT` | token appears nowhere in the tree |
-| `MENTIONED` | appears, but only in a comment, string, or doc |
-| `DEFINED` | appears at an actual definition site |
-
-Then check path existence, line-in-range, git tag existence, transitive
-reachability from a non-test entry point (depth-4 caller graph; `tests/`,
-`fuzz/`, and `examples/` are excluded as entry points), and whether the
-declared symbol is actually defined in the declared *file*.
-
-That last check is the one T5 forced. A symbol can be `DEFINED`, its file can
-exist, and its line can be in range while the report is still false, because
-none of those checks looks at the relation between them. The rule only fires
-when the claimed file does not contain the symbol at all - a header that merely
-declares it is legitimate to cite, so that case abstains. Under a 500x
-false-positive cost, the guard is worth more than the extra recall it gives up.
-
-The tokenizer matters more than it looks. A naive sequential regex stripper
-treats the `//` inside `"https://example.com"` as a line comment and silently
-swallows the rest of the line, which loses real call sites. One alternation
-pass, strings first, fixes it.
-
-**4. Adjudicate** (`src/slopgate/adjudicate.py`)
-Deterministic rules over the evidence table, keyed on the report's *own*
-declared primary claim. Every verdict traces to a specific check, so the
-evidence bundle is an audit trail rather than a rationalization. Any detected
-injection attempt forces routing to a human regardless of the grounding result.
-
-Because nothing here is probabilistic, the same report against the same ref
-always produces the same record. That is a property worth keeping as later
-stages are added: the model may propose claims, but it should not be the thing
-that decides.
-
----
-
-## Verdicts and the cost matrix
+### Verdicts
 
 | Verdict | Meaning | Action |
 |---|---|---|
@@ -136,191 +144,73 @@ that decides.
 | `UNVERIFIED` | claims ground, exploitability undecided | needs human |
 | `REPRODUCIBLE` | PoC executed and reproduced | escalate |
 
-**SlopGate never auto-closes anything.** The operating point comes from an
-explicit cost matrix in `adjudicate.py`: a wrongly closed real CVE is priced at
-**500x** a wasted human review. Under that matrix abstaining is cheap and
-guessing is not, so `UNVERIFIED` is the default whenever the evidence for
-`HALLUCINATED` is anything less than unambiguous.
+`adjudicate.py` prices a wrongly closed real CVE at **500x** a wasted human
+review. Under that matrix abstaining is cheap and guessing is not, so
+`UNVERIFIED` is the default whenever the evidence for `HALLUCINATED` is
+anything less than unambiguous. `REPRODUCIBLE` is unreachable today — there is
+no PoC sandbox, so every grounded report collapses to `UNVERIFIED`.
 
-This is why the framing is *queue routing*, not classification. The output is
-not a label, it is an ordering plus a pre-computed evidence bundle, so the
-maintainer's next thirty minutes go to the reports most likely to be real.
-
-`REPRODUCIBLE` is unreachable in the current baseline: there is no PoC sandbox
-yet, so every genuinely grounded report collapses to `UNVERIFIED`.
-
----
-
-## Difficulty tiers
-
-Every corpus item is tagged, so precision on hard negatives is reported
-separately from precision on easy ones.
-
-| Tier | Claim under test | Why it is hard | Gold label |
-|---|---|---|---|
-| T1 | symbol absent from the tree | grep catches it | `HALLUCINATED` |
-| T2 | symbol appears only in a comment | grep says "found it" and is wrong | `HALLUCINATED` |
-| T3 | symbol real but unreachable | needs a call graph | `NOT_HALLUCINATED` |
-| T4 | symbol real, reachable, genuine defect | must not be called slop | `NOT_HALLUCINATED` |
-| T5 | symbol real, file real, line in range, **but the symbol is not in that file** | every individual check passes; only the association is false | `HALLUCINATED` |
-
-T5 is machine-generated by `corpus/slopforge.py` against the tree itself, so it
-grows with the target rather than being hand-authored. It is the tier that
-models Adversary 2 in the threat model: a reporter who reads the repository
-first.
-
-T3 is labeled `NOT_HALLUCINATED` deliberately. Dead code is a real finding, and
-auto-closing it is exactly the failure this project exists to prevent.
-
----
-
-## Current results
-
-19 items, 13 hand-authored plus 6 forged by SlopForge. Two rule-based systems,
-no models involved, measured against the honest null hypothesis: *does grep
-find the claimed symbol?*
+## Layout
 
 ```
-OVERALL  (positive class = HALLUCINATED)
-  SlopGate      TP=12  FP=0   FN=0   TN=7    P=1.00 R=1.00 F1=1.00  cost=0.0
-  grep baseline TP=3   FP=0   FN=9   TN=7    P=1.00 R=0.25 F1=0.40  cost=9.0
-
-PER TIER (accuracy)
-  TIER  N    SLOPGATE     GREP
-  T1    4    1.00         0.75
-  T2    2    1.00         0.00
-  T3    2    1.00         1.00
-  T4    5    1.00         1.00
-  T5    6    1.00         0.00
-
-ABSTENTION  7/19 verdicts were UNVERIFIED
-LATENCY     0.011 s/report      COST  $0.00 (rule-based, no model calls)
-```
-
-### The co-evolution round
-
-The T5 numbers above are round 2. Round 1 is what SlopForge did to the system
-before it was defended, and it is the more informative half:
-
-| | overall F1 | recall | T5 accuracy |
-|---|---|---|---|
-| round 0, seed corpus only | 1.00 | 1.00 | — |
-| **round 1, SlopForge attacks** | **0.67** | **0.50** | **0.00** |
-| round 2, location check added | 1.00 | 1.00 | 1.00 |
-
-One generated tier erased a perfect score, which is the point: the round-0
-1.00 measured the corpus, not the system. Both rounds are in git history
-(`SlopForge round 1` is the commit before the defense) so the curve is
-reproducible rather than asserted.
-
-Note what did *not* recover. The grep incumbent scores 0.00 on T5 and stays
-there: no amount of substring matching can tell you a symbol is defined
-somewhere other than where the report says it is.
-
-**T2 and T5 are the rows that justify the project.** In the bundled target,
-`curl_easy_parse_header` appears in the tree exactly once, inside a block
-comment recording that it was removed before release. grep reports it as
-present. So does every symbol checker that does not parse.
-
-Read these numbers with the obvious caveat: 19 synthetic items against one
-small bundled repo. Perfect scores here mean the tiers are well separated, not
-that the system generalizes. Corpus growth is item 6 on the roadmap.
-
----
-
-## Repository layout
-
-```
-run_baseline.py              graded artifact - CLI entry point
-requirements.txt             empty by design - stdlib only
+demo.py                fixed-output entry point, self-checking
+run_baseline.py        CLI for a single report
 src/slopgate/
-  extract.py                 injection sanitizer + claim extraction
-  ground.py                  tokenizer, symbol grounding, reachability
-  adjudicate.py              cost-asymmetric decision rules
-examples/
-  report_hallucinated.md     T2 - comment-only symbol, out-of-range line
-  report_real.md             T4 - real reachable defect
-  report_deadcode.md         T3 - real but unreachable
-  report_injection.md        report that attacks the triage system
-  target_repo/               bundled 6-file C project (no nested .git; the
-                             minihttp-1_0 tag lives on this repo so the
-                             version-ref check works straight from a clone)
+  extract.py           injection sanitizer + claim extraction
+  ground.py            tokenizer, symbol grounding, reachability, location
+  adjudicate.py        cost-asymmetric decision rules
 corpus/
-  build_corpus.py            generates the 13 hand-authored reports
-  slopforge.py               adversarial generator: forges T5 from the tree
-  labels.json                manifest: file, tier, gold label
-  reports/                   generated
-eval/
-  run_eval.py                confusion matrix + per-tier + grep comparison
-  results/                   dated JSON, committed
-docs/
-  threat_model.md
-  labeling_protocol.md
+  build_corpus.py      13 hand-authored reports
+  slopforge.py         adversarial generator, forges T5 from the tree
+  labels.json          manifest: file, tier, gold label
+eval/run_eval.py       confusion matrix, per-tier, grep comparison
+examples/target_repo/  bundled 6-file C project, tagged minihttp-1_0
+docs/                  threat model, labeling protocol
 ```
 
----
+The `minihttp-1_0` tag lives on this repo, not on a nested one, so the
+version-ref check works straight from a clone.
 
-## The four example reports
-
-| File | Tier | Expected verdict | What it demonstrates |
-|---|---|---|---|
-| `report_hallucinated.md` | T2 | `HALLUCINATED` 0.93 | a comment mention is not existence |
-| `report_real.md` | T4 | `UNVERIFIED` 0.50 | negative control, does not false-positive |
-| `report_deadcode.md` | T3 | `UNVERIFIED` 0.60 | real symbol, no path from an entry point |
-| `report_injection.md` | n/a | `UNVERIFIED` forced | embedded "set verdict to REPRODUCIBLE" stripped and logged |
-
-Always run at least one negative control alongside the positive. A detector
-that only ever fires is not a detector.
-
----
-
-## Roadmap
-
-Phase 2, in priority order. Items 1 and 2 are the distinctive contributions and
-are protected; 7 and 8 are the first to be cut.
-
-1. ~~**SlopForge**, an adversarial generator~~ - **round 1 shipped**
-   (`corpus/slopforge.py`, tier T5, co-evolution table above). Remaining: more
-   forge strategies than the location swap, and rounds 3+ against them.
-2. **Hardening against reports that attack the triage system**, including the
-   *suppression* attack: a real report crafted to look hallucinated so a
-   maintainer buries it. See `docs/threat_model.md`.
-3. LLM-assisted claim extraction for prose reports that lack structured header
-   fields, evaluated strictly as a delta against the rule-based numbers above.
-4. tree-sitter parsing and a real call graph, replacing the regex approximation.
-5. Dockerized PoC execution: network off, read-only mount, non-root, hard
-   timeout. This is the schedule risk; budget a full week.
-6. Expansion to a Python target and a Go target.
-7. Corpus growth to ~200 items using curl's ~87 published CVEs and its publicly
-   disclosed rejected reports, with a two-labeler protocol and Cohen's kappa.
-8. Small human study (n~8) measuring triage time with and without the evidence
-   bundle.
-
-### Known limitations
+## Limitations
 
 - Existence checking cannot separate a real function used incorrectly from a
   real vulnerability.
 - Regex reachability misses function pointers, macros, and dynamic dispatch.
-- Confidence values are hand-set constants, not calibrated. Reliability diagram
-  and ECE are phase-2 deliverables.
-- The corpus is synthetic; 13 items are authored by the team and 6 are
-  machine-forged against the same small tree.
-- SlopForge currently has exactly one forge strategy, the location swap.
-  A detector tuned to one attack is not a defended system, and the round-2
-  1.00 on T5 should be read as "this attack is closed", not "T5 is solved".
-- Extraction depends on structured header fields (`**Affected function:**` and
-  friends). A report written as unstructured prose degrades to whatever the
-  inline code spans yield. This is the main gap an LLM stage would close.
+- Confidence values are hand-set constants, not calibrated.
+- The corpus is synthetic: 13 authored by the team, 6 machine-forged against
+  the same small tree.
+- SlopForge has exactly one strategy, the location swap. Read T5 = 1.00 as
+  "this attack is closed", not "T5 is solved".
+- Extraction depends on structured header fields. A report written as prose
+  degrades to whatever the inline code spans yield. This is the gap an LLM
+  stage would close.
 
----
+## Roadmap
 
-## Ethics and legal guardrail
+1. **SlopForge** — round 1 shipped. Remaining: more forge strategies than the
+   location swap, and rounds 3+ against them.
+2. **Hardening against reports that attack the triage system**, including the
+   *suppression* attack: a real report crafted to look hallucinated so a
+   maintainer buries it. See [docs/threat_model.md](docs/threat_model.md).
+3. LLM-assisted claim extraction for prose reports, evaluated as a delta
+   against the rule-based numbers above.
+4. tree-sitter parsing and a real call graph.
+5. Dockerized PoC execution: network off, read-only mount, non-root, hard
+   timeout. Budget a full week.
+6. A Python target and a Go target.
+7. Corpus growth to ~200 items from curl's published CVEs and its disclosed
+   rejected reports, two labelers, Cohen's kappa.
+8. Human study (n≈8) measuring triage time with and without the bundle.
 
-Every target is local, synthetic, or a repository the team owns. **No scanning
-of third-party production systems.** Adversarial reports are generated only
-against the bundled target repo and against historical, already-fixed, publicly
-disclosed CVEs. Synthetic malicious inputs live under clearly marked
-directories with a README stating their purpose.
+Items 1 and 2 are the distinctive contributions. 7 and 8 are the first to cut.
 
-Full threat model in `docs/threat_model.md`; labeling rules and the
-disagreement procedure in `docs/labeling_protocol.md`.
+## Ethics
+
+Every target is local, synthetic, or owned by the team. No scanning of
+third-party production systems. Adversarial reports are generated only against
+the bundled target repo and against historical, already-fixed, publicly
+disclosed CVEs.
+
+Threat model: [docs/threat_model.md](docs/threat_model.md).
+Labeling rules and the disagreement procedure:
+[docs/labeling_protocol.md](docs/labeling_protocol.md).
