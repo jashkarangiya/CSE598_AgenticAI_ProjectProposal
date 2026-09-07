@@ -34,7 +34,54 @@ The evidence table is the product. `MENTIONED` rather than `DEFINED` is the
 whole T2 result: the symbol is in the tree, but only inside a comment saying it
 was removed.
 
-Then the full evaluation:
+## Triage a queue
+
+One report is a demo. A queue is the actual job:
+
+```bash
+python3 slopgate.py corpus/reports --repo examples/target_repo
+```
+
+![python3 slopgate.py against a directory of 19 reports: a ranked queue with the seven reports that need a human at the top, twelve that contradict the tree below them with the specific contradiction on each row, and a footer reading READ FIRST 7, DEPRIORITIZE 12, cost $0.00 in 0.18s, nothing closed automatically](docs/queue.svg)
+
+The ordering is the product. Reports that ground to real reachable code sort
+above dead code, which sorts above anything that contradicts the tree, and
+within the contradictions the least confident ones come first — those are the
+ones worth a second look. A maintainer reads top-down and stops when they run
+out of time.
+
+The argument is a file, a directory, or a glob. `--repo` defaults to the
+current directory:
+
+```bash
+python3 slopgate.py report.md                  # one report, full evidence bundle
+python3 slopgate.py 'inbox/*.md' --repo ../curl
+python3 slopgate.py inbox/ --json triage.json  # machine-readable
+```
+
+Nothing here is specific to the bundled target. Grounding walks `.c`, `.h`,
+`.py`, `.go`, `.js`, and `.ts`, so pointing it at a checkout you already have
+works. `examples/self/` holds two reports about *this repository's* Python
+source — one describing a real function, one describing a function that does
+not exist:
+
+```console
+$ python3 slopgate.py examples/self/
+  #   VERDICT        CONF  REPORT                     TOP REASON
+  1   UNVERIFIED     0.50  grounded.md                every claim grounds to real, reachable code; existence check
+  2   HALLUCINATED   0.95  invented.md                the report's own declared vulnerable function 'normalize_rep
+------------------------------------------------------------------------
+READ FIRST   1 report(s) need a human
+DEPRIORITIZE 1 report(s) contradict the tree, evidence attached
+COST         $0.00 in 0.03s. Nothing was closed automatically.
+------------------------------------------------------------------------
+```
+
+That run is real: no `--repo`, no target repo, no corpus. It walked this
+checkout, found `strip_comments` defined in `src/slopgate/ground.py` and
+reachable, and found that `normalize_report_encoding` does not exist.
+
+## Evaluation
 
 ```bash
 python3 corpus/build_corpus.py   # 13 authored + 6 forged reports
@@ -43,13 +90,6 @@ python3 eval/run_eval.py         # confusion matrix, per-tier, grep comparison
 
 `run_eval.py` exits non-zero if any verdict disagrees with its gold label, so
 it doubles as the regression gate.
-
-One report at a time:
-
-```bash
-python3 run_baseline.py --report examples/report_real.md \
-                        --repo examples/target_repo [--json out.json]
-```
 
 ## Results
 
@@ -145,9 +185,10 @@ no PoC sandbox, so every grounded report collapses to `UNVERIFIED`.
 ## Layout
 
 ```
+slopgate.py            the tool: one report or a ranked queue
 demo.py                fixed-output entry point, self-checking
-run_baseline.py        CLI for a single report
 src/slopgate/
+  cli.py               analyze, evidence bundle, queue ranking
   extract.py           injection sanitizer + claim extraction
   ground.py            tokenizer, symbol grounding, reachability, location
   adjudicate.py        cost-asymmetric decision rules

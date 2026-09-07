@@ -14,9 +14,8 @@ import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
-sys.path.insert(0, ROOT)
 
-from run_baseline import analyze  # noqa: E402
+from slopgate.cli import analyze  # noqa: E402
 
 POS = "HALLUCINATED"
 

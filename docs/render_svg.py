@@ -26,6 +26,7 @@ WORDS = [
     ("REACHABLE", GREEN), ("DEFINED", GREEN), ("MENTIONED", AMBER),
     ("ABSENT", RED), ("EXISTS", GREEN), ("STRIPPED", BLUE),
     ("REGRESSION", RED), ("FAIL", RED), ("PASS", GREEN),
+    ("READ FIRST", GREEN), ("DEPRIORITIZE", DIM),
 ]
 TOKEN_RE = re.compile("(%s)" % "|".join(w for w, _ in WORDS))
 COLOR = dict(WORDS)
@@ -85,6 +86,8 @@ font-size="13.5">
 
 SHOTS = [
     ("demo.svg", "python3 demo.py", ["python3", "demo.py"]),
+    ("queue.svg", "python3 slopgate.py corpus/reports --repo examples/target_repo",
+     ["python3", "slopgate.py", "corpus/reports", "--repo", "examples/target_repo"]),
     ("eval.svg", "python3 eval/run_eval.py", ["python3", "eval/run_eval.py"]),
 ]
 

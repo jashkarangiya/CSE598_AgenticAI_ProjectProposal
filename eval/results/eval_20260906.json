@@ -9,7 +9,7 @@
       "raw": "HALLUCINATED",
       "conf": 0.93,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.012
+      "latency": 0.007
     },
     {
       "file": "t1_b.md",
@@ -19,7 +19,7 @@
       "raw": "HALLUCINATED",
       "conf": 0.97,
       "grep": "HALLUCINATED",
-      "latency": 0.008
+      "latency": 0.006
     },
     {
       "file": "t1_c.md",
@@ -29,7 +29,7 @@
       "raw": "HALLUCINATED",
       "conf": 0.97,
       "grep": "HALLUCINATED",
-      "latency": 0.007
+      "latency": 0.006
     },
     {
       "file": "t1_d.md",
@@ -39,7 +39,7 @@
       "raw": "HALLUCINATED",
       "conf": 0.97,
       "grep": "HALLUCINATED",
-      "latency": 0.007
+      "latency": 0.006
     },
     {
       "file": "t2_a.md",
@@ -49,7 +49,7 @@
       "raw": "HALLUCINATED",
       "conf": 0.88,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.009
+      "latency": 0.008
     },
     {
       "file": "t2_b.md",
@@ -59,7 +59,7 @@
       "raw": "HALLUCINATED",
       "conf": 0.88,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.008
+      "latency": 0.006
     },
     {
       "file": "t3_a.md",
@@ -69,7 +69,7 @@
       "raw": "UNVERIFIED",
       "conf": 0.6,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.008
+      "latency": 0.007
     },
     {
       "file": "t3_b.md",
@@ -89,7 +89,7 @@
       "raw": "UNVERIFIED",
       "conf": 0.5,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.009
+      "latency": 0.007
     },
     {
       "file": "t4_b.md",
@@ -99,7 +99,7 @@
       "raw": "UNVERIFIED",
       "conf": 0.5,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.009
+      "latency": 0.008
     },
     {
       "file": "t4_c.md",
@@ -109,7 +109,7 @@
       "raw": "UNVERIFIED",
       "conf": 0.5,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.008
+      "latency": 0.012
     },
     {
       "file": "t4_d.md",
@@ -129,7 +129,7 @@
       "raw": "UNVERIFIED",
       "conf": 0.5,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.008
+      "latency": 0.007
     },
     {
       "file": "t5_a.md",
@@ -149,7 +149,7 @@
       "raw": "HALLUCINATED",
       "conf": 0.9,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.008
+      "latency": 0.007
     },
     {
       "file": "t5_c.md",
@@ -159,7 +159,7 @@
       "raw": "HALLUCINATED",
       "conf": 0.9,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.008
+      "latency": 0.007
     },
     {
       "file": "t5_d.md",
@@ -169,7 +169,7 @@
       "raw": "HALLUCINATED",
       "conf": 0.9,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.009
+      "latency": 0.008
     },
     {
       "file": "t5_e.md",
@@ -179,7 +179,7 @@
       "raw": "HALLUCINATED",
       "conf": 0.9,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.009
+      "latency": 0.008
     },
     {
       "file": "t5_f.md",
@@ -189,7 +189,7 @@
       "raw": "HALLUCINATED",
       "conf": 0.9,
       "grep": "NOT_HALLUCINATED",
-      "latency": 0.008
+      "latency": 0.011
     }
   ],
   "slopgate": {

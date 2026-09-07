@@ -11,11 +11,11 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(HERE, "src"))
 sys.path.insert(0, os.path.join(HERE, "corpus"))
 
 import build_corpus                              # noqa: E402
-from run_baseline import analyze, render         # noqa: E402
+from slopgate.cli import analyze, render     # noqa: E402
 
 REPO = os.path.join(HERE, "examples", "target_repo")
 
@@ -54,7 +54,9 @@ def main():
         print("FAIL  %s: expected %s, got %s" % (path, want, got))
     print("\n%s  %d/%d verdicts as expected."
           % ("FAIL" if bad else "PASS", len(CASES) - len(bad), len(CASES)))
-    print("Full evaluation: python3 eval/run_eval.py")
+    print("Triage a queue:   python3 slopgate.py corpus/reports "
+          "--repo examples/target_repo")
+    print("Full evaluation:  python3 eval/run_eval.py")
     return 1 if bad else 0
 
 
